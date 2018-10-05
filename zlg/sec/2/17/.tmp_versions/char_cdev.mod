@@ -1,0 +1,2 @@
+/media/bingo/AA89101CDFA5A863/code/linux/zlg/sec/2/17/char_cdev.ko
+/media/bingo/AA89101CDFA5A863/code/linux/zlg/sec/2/17/char_cdev.o

@@ -1,0 +1,53 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+ARRAY_SIZE	spidev_test.c	25;"	d	file:
+CC	Makefile	/^CC  :=..\/..\/cross-tools\/gcc-4.4.4-glibc-2.11.1-multilib-1.0\/arm-fsl-linux-gnueabi\/bin\/arm-none-linux-gnueabi-gcc $/;"	m
+SPIDEV_H	spidev.h	23;"	d
+SPI_3WIRE	spidev.h	41;"	d
+SPI_CPHA	spidev.h	31;"	d
+SPI_CPOL	spidev.h	32;"	d
+SPI_CS_HIGH	spidev.h	39;"	d
+SPI_IOC_MAGIC	spidev.h	50;"	d
+SPI_IOC_MESSAGE	spidev.h	110;"	d
+SPI_IOC_RD_BITS_PER_WORD	spidev.h	122;"	d
+SPI_IOC_RD_LSB_FIRST	spidev.h	118;"	d
+SPI_IOC_RD_MAX_SPEED_HZ	spidev.h	126;"	d
+SPI_IOC_RD_MODE	spidev.h	114;"	d
+SPI_IOC_WR_BITS_PER_WORD	spidev.h	123;"	d
+SPI_IOC_WR_LSB_FIRST	spidev.h	119;"	d
+SPI_IOC_WR_MAX_SPEED_HZ	spidev.h	127;"	d
+SPI_IOC_WR_MODE	spidev.h	115;"	d
+SPI_LOOP	spidev.h	42;"	d
+SPI_LSB_FIRST	spidev.h	40;"	d
+SPI_MODE_0	spidev.h	34;"	d
+SPI_MODE_1	spidev.h	35;"	d
+SPI_MODE_2	spidev.h	36;"	d
+SPI_MODE_3	spidev.h	37;"	d
+SPI_MSGSIZE	spidev.h	107;"	d
+SPI_NO_CS	spidev.h	43;"	d
+SPI_READY	spidev.h	44;"	d
+bits	spidev_test.c	/^static uint8_t bits = 8;$/;"	v	file:
+bits_per_word	spidev.h	/^	__u8		bits_per_word;$/;"	m	struct:spi_ioc_transfer
+cs_change	spidev.h	/^	__u8		cs_change;$/;"	m	struct:spi_ioc_transfer
+delay	spidev_test.c	/^static uint16_t delay;$/;"	v	file:
+delay_usecs	spidev.h	/^	__u16		delay_usecs;$/;"	m	struct:spi_ioc_transfer
+device	spidev_test.c	/^static const char *device = "\/dev\/spidev1.0";$/;"	v	file:
+len	spidev.h	/^	__u32		len;$/;"	m	struct:spi_ioc_transfer
+main	spidev_test.c	/^int main(int argc, char *argv[])$/;"	f
+mode	spidev_test.c	/^static uint8_t mode;$/;"	v	file:
+obj	Makefile	/^obj := spidev_test$/;"	m
+pabort	spidev_test.c	/^static void pabort(const char *s)$/;"	f	file:
+pad	spidev.h	/^	__u32		pad;$/;"	m	struct:spi_ioc_transfer
+parse_opts	spidev_test.c	/^void parse_opts(int argc, char *argv[])$/;"	f
+print_usage	spidev_test.c	/^void print_usage(const char *prog)$/;"	f
+rx_buf	spidev.h	/^	__u64		rx_buf;$/;"	m	struct:spi_ioc_transfer
+speed	spidev_test.c	/^static uint32_t speed = 50000;$/;"	v	file:
+speed_hz	spidev.h	/^	__u32		speed_hz;$/;"	m	struct:spi_ioc_transfer
+spi_ioc_transfer	spidev.h	/^struct spi_ioc_transfer {$/;"	s
+src	Makefile	/^src := spidev_test.c$/;"	m
+transfer	spidev_test.c	/^static void transfer(int fd)$/;"	f	file:
+tx_buf	spidev.h	/^	__u64		tx_buf;$/;"	m	struct:spi_ioc_transfer
