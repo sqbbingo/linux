@@ -5,7 +5,7 @@
 #include <errno.h>
 #include <fcntl.h>
 
-#define DEV_NAME	"/dev/char_cde"
+#define DEV_NAME	"/dev/char_cdev"
 
 int main(int argc,char *argv[])
 {

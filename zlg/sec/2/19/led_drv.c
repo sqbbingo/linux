@@ -18,28 +18,28 @@ struct cdev *led;				/*cdev数据结构*/
 static dev_t devno;				/*设备编号*/
 static struct class *led_class;
 
-#define	DEVIE_NAME			"led"
+#define	DEVIE_NAME		"led"
 	
 #define	GPIO_LED_PIN_NUM	55				/*gpio 1_23*/
 
-static int led_open(struct inode *inode,sturct file *file)
+static int led_open(struct inode *inode,struct file *file)
 {
 	try_module_get(THIS_MODULE);
-	gpio_direction_output(GPIO_LED_PIN_NUM,1);
+	gpio_direction_output(GPIO_LED_PIN_NUM,1);printk("open\n");
 	return 0;
 }	
 
-static int led_release(struct inode *inode,sturct file *file)
+static int led_release(struct inode *inode,struct file *file)
 {
 	module_put(THIS_MODULE);
-	gpio_direction_output(GPIO_LED_PIN_NUM,1);
+	gpio_direction_output(GPIO_LED_PIN_NUM,1);printk("release\n");
 	return 0;
 }
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,36)
-	int led_ioctl(sturct file *filp,unsigned int cmd,unsigned long arg)
+int led_ioctl(struct file *filp,unsigned int cmd,unsigned long arg)
 #else
-	static int led_ioctl(sturct inode *inode,sturct file *file,unsigned int cmd,unsigned long arg)
+static int led_ioctl(struct inode *inode,struct file *file,unsigned int cmd,unsigned long arg)
 #endif	
 {
 	if(_IOC_TYPE(cmd) != LED_IOC_MAGIC){
@@ -49,25 +49,27 @@ static int led_release(struct inode *inode,sturct file *file)
 	if(_IOC_NR(cmd) > LED_IOCTL_MAXNR){
 		return -ENOTTY;
 	}
-
+	printk("led_ioctl cmd = %d\n",cmd);
 	switch(cmd){
 		case LED_ON:
 			gpio_set_value(GPIO_LED_PIN_NUM,0);
+			printk("ON\n");
 			break;
 
 		case LED_OFF:
 			gpio_set_value(GPIO_LED_PIN_NUM,1);
+			printk("OFF\n");
 			break;
 
 		default:
 			gpio_set_value(27,0);
 			break;
 	}
-
+	
 	return 0;
 }
 
-sturct file_operations led_fops = {
+struct file_operations led_fops = {
 	.owner	=THIS_MODULE,
 	.open 	=led_open,
 	.release=led_release,
@@ -114,7 +116,7 @@ static int __init led_init(void)
 		return -1;
 	}
 
-	device_create(led_class,NULL,devno,null,"led");
+	device_create(led_class,NULL,devno,NULL,"led");
 	return 0;
 
 error:

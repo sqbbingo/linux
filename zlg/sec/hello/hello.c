@@ -14,7 +14,7 @@
 #include <linux/gpio.h>
 
 static int hello_init(void);
-static void hello_exit(void);
+static void hello_exit(void); 
 
 static int __init hello_init(void)
 {
