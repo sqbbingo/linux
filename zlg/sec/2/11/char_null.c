@@ -1,6 +1,6 @@
 #include <linux/init.h>
 #include <linux/module.h>
-#include <linux/fs.h>
+#include <linux/fs.h>	//设备号相关
 
 #define DEVICE_NAME		"char_null"
 static int major = 0;		//保存主设备号的全局变量

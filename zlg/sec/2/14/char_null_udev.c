@@ -6,11 +6,11 @@
 
 static int major = 232;         //静态设备号方式的默认值
 static int minor = 0;           //静态设备号方式的默认值
-module_param(major,int,S_IRUGO);
+module_param(major,int,S_IRUGO);        //模块参数，驱动支持加载的时候指定主次设备号
 module_param(minor,int,S_IRUGO);
 
-struct cdev *char_null_udev;    //cdev数据结构
-static dev_t devno;             //设备编号
+struct cdev *char_null_udev;    //定义一个 cdev 全局变量 char_null_udev
+static dev_t devno;             //用于保存设备编号
 static struct class *char_null_udev_class;
 
 #define DEVICE_NAME     "char_null_udev"
