@@ -1,0 +1,8 @@
+NR==5 FDSFF FSDF FAF
+nr==1 fdsff 889f feq
+$nRR=9 f5few f2ff fwff
+Nr==5 fsdff f2sd ff2
+54	6	98	90
+53	4	66	92
+name:time:age:where
+$499
