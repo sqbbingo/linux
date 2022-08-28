@@ -21,3 +21,12 @@ $RECYCLE.BIN/
 # =========================
 # Operating System Files
 # =========================
+*.cmd 
+*Module.symvers 
+*.order
+*.o
+*.mod
+*.mod.c
+*.mod.o
+*.ko
+*.out
