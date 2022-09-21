@@ -11,4 +11,4 @@ clean:
 endif
 
 test:
-	arm-linux-gnueabihf-gcc ks103_test.c -o ks103_test.out
+	arm-linux-gnueabihf-gcc led_test.c -o led_test.out

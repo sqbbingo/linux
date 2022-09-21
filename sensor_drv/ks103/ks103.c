@@ -2,7 +2,7 @@
 * @Author: bingo
 * @Date:   2022-08-22 23:46:42
 * @Last Modified by:   bingo
-* @Last Modified time: 2022-08-24 00:01:37
+* @Last Modified time: 2022-09-21 23:33:25
 */
 
 #include <linux/types.h>
@@ -19,6 +19,11 @@
 #include <linux/semaphore.h>
 #include <linux/timer.h>
 #include <linux/i2c.h>
+#include <linux/init.h>
+#include <linux/slab.h>
+#include <linux/uaccess.h>
+#include <linux/fs.h>
+#include <linux/of_address.h>
 #include <asm/mach/map.h>
 #include <asm/uaccess.h>
 #include <asm/io.h>
@@ -29,17 +34,21 @@
 #define KS103_NAME "ks103"
 
 struct ks103_dev {
-    dev_t devid; /* 设备号 */
     struct cdev cdev; /* cdev */
+    dev_t devid; /* 设备号 */
     struct class *class; /* 类 */
     struct device *device; /* 设备 */
     struct device_node *nd; /* 设备节点 */
+    struct i2c_client *client;
+    struct device_node *node;/*设备树节点*/
     int major; /* 主设备号 */
     void *private_data; /* 私有数据 */
     unsigned short temp, light, distance; /* 三个光传感器数据 */
 };
 
-static struct ks103_dev ks103cdev;
+static struct class *mydev_class;  /* 类 */
+static int count = 0;
+static dev_t parent_devid;         /* 设备号 */
 
 /*
 * @description : 从 ks103 读取多个寄存器数据
@@ -53,7 +62,7 @@ static int ks103_read_regs(struct ks103_dev *dev, u8 reg, void *val, int len)
 {
     int ret;
     struct i2c_msg msg[2];
-    struct i2c_client *client = (struct i2c_client *)dev->private_data;
+    struct i2c_client *client = (struct i2c_client *)dev->client;
     /* msg[0]为发送要读取的首地址 */
     msg[0].addr = client->addr; /* ks103 地址 */
     msg[0].flags = 0; /* 标记为发送数据 */
@@ -88,7 +97,7 @@ static s32 ks103_write_regs(struct ks103_dev *dev, u8 reg, u8 *buf, u8 len)
 {
     u8 b[256];
     struct i2c_msg msg;
-    struct i2c_client *client = (struct i2c_client *)dev->private_data;
+    struct i2c_client *client = (struct i2c_client *)dev->client;
 
     b[0] = reg; /* 寄存器首地址 */
     memcpy(&b[1], buf, len); /* 将要写入的数据拷贝到数组 b 里面 */
@@ -108,7 +117,7 @@ static s32 ks103_write_regs(struct ks103_dev *dev, u8 reg, u8 *buf, u8 len)
 * @param – reg : 要读取的寄存器
 * @return : 读取到的寄存器值
 */
-static unsigned char ks103_read_reg(struct ks103_dev *dev, u8 reg)
+/*static unsigned char ks103_read_reg(struct ks103_dev *dev, u8 reg)
 {
     u8 data = 0;
 
@@ -116,10 +125,10 @@ static unsigned char ks103_read_reg(struct ks103_dev *dev, u8 reg)
     return data;
 
 #if 0
-    struct i2c_client *client = (struct i2c_client *)dev->private_data;
+    struct i2c_client *client = (struct i2c_client *)dev->client;
     return i2c_smbus_read_byte_data(client, reg);
 #endif
-}
+}*/
 
 /*
 * @description : 向 ks103 指定寄存器写入指定的值，写一个寄存器
@@ -148,23 +157,23 @@ void ks103_readdata(struct ks103_dev *dev)
     unsigned char buf[6];
 
     /* 循环读取所有传感器数据 */
-    ks103_write_reg(dev,0x02,0xa0);
+    ks103_write_reg(dev, 0x02, 0xa0);
     mdelay(3);
-    ks103_read_regs(dev,0x02,buf,2);
+    ks103_read_regs(dev, 0x02, buf, 2);
     dev->light = (buf[0] << 8) + buf[1];
 
-    ks103_write_reg(dev,0x02,0xcc);
+    ks103_write_reg(dev, 0x02, 0xcc);
     mdelay(610);
-    ks103_read_regs(dev,0x02,buf,2);
+    ks103_read_regs(dev, 0x02, buf, 2);
     dev->temp = (buf[0] << 8) + buf[1];
 
-    ks103_write_reg(dev,0x02,0xb2);
+    ks103_write_reg(dev, 0x02, 0xb2);
     mdelay(33);
-    ks103_read_regs(dev,0x02,buf,2);
+    ks103_read_regs(dev, 0x02, buf, 2);
     dev->distance = (buf[0] << 8) + buf[1];
-    
+
     // dev->temp = 0;
-    // dev->distance = 0; 
+    // dev->distance = 0;
 }
 
 /*
@@ -176,9 +185,10 @@ void ks103_readdata(struct ks103_dev *dev)
 */
 static int ks103_open(struct inode *inode, struct file *filp)
 {
-    filp->private_data = &ks103cdev;
+    struct ks103_dev *dev = container_of(inode->i_cdev, struct ks103_dev, cdev);
+    filp->private_data = dev;
 
-    printk("%s\n",__FUNCTION__);
+    // printk("%s addr=%x %x\n", __FUNCTION__,dev,dev->client->addr);
 
     return 0;
 }
@@ -234,32 +244,67 @@ static const struct file_operations ks103_ops = {
 */
 static int ks103_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
-    /* 1、构建设备号 */
-    if (ks103cdev.major) {
-        ks103cdev.devid = MKDEV(ks103cdev.major, 0);
-        register_chrdev_region(ks103cdev.devid, KS103_CNT, KS103_NAME);
-    } else {
-        alloc_chrdev_region(&ks103cdev.devid, 0, KS103_CNT, KS103_NAME);
-        ks103cdev.major = MAJOR(ks103cdev.devid);
+    int ret;
+    struct ks103_dev *ks103_dev_data;
+    struct device *dev = &client->dev;
+
+    ks103_dev_data = devm_kzalloc(dev, sizeof(*ks103_dev_data), GFP_KERNEL);
+    if (!ks103_dev_data)
+        return -ENOMEM;
+
+    if ( 0 == count)
+    {
+        alloc_chrdev_region(&parent_devid, 0, 1, KS103_NAME);
+        printk("request major_devid is %d \r\n", MAJOR(parent_devid));
     }
+
+    /*printk("client->name=%s\n",client->name);
+    printk("client->adapter->name=%s\n",client->adapter->name);
+    printk("client->dev.of_node->name=%s\n",client->dev.of_node->name);
+    for_each_compatible_node(ks103_dev_data->node, NULL, KS103_NAME)//获取节点名字
+    {
+        const __be32 *addr_dtc;
+
+        addr_dtc = of_get_address(ks103_dev_data->node, 0, NULL, NULL);
+        if (be32_to_cpup(addr_dtc) == client->addr)
+        {
+            printk("name=%s bus=%d addr_dtc=%x\n",ks103_dev_data->node->name,client->flags,be32_to_cpup(addr_dtc));
+            break;
+        }
+    }*/
 
     /* 2、注册设备 */
-    cdev_init(&ks103cdev.cdev, &ks103_ops);
-    cdev_add(&ks103cdev.cdev, ks103cdev.devid, KS103_CNT);
+    ks103_dev_data->devid = parent_devid + count;
+    ks103_dev_data->cdev.owner = THIS_MODULE;
+    cdev_init(&ks103_dev_data->cdev, &ks103_ops);
+    ret = cdev_add(&ks103_dev_data->cdev, ks103_dev_data->devid, 1);
+    if (ret)
+    {
+        printk("cdev_add failed\n");
+    }
 
     /* 3、创建类 */
-    ks103cdev.class = class_create(THIS_MODULE, KS103_NAME);
-    if (IS_ERR(ks103cdev.class)) {
-        return PTR_ERR(ks103cdev.class);
+    if ( 0 == count )
+    {
+        mydev_class = class_create(THIS_MODULE, KS103_NAME);
+        if (IS_ERR(mydev_class)) {
+            return PTR_ERR(mydev_class);
+        }
     }
-
     /* 4、创建设备 */
-    ks103cdev.device = device_create(ks103cdev.class, NULL, ks103cdev.devid, NULL, KS103_NAME);
-    if (IS_ERR(ks103cdev.device)) {
-        return PTR_ERR(ks103cdev.device);
+    ks103_dev_data->device = device_create(mydev_class, &client->dev,
+                                           ks103_dev_data->devid, NULL, 
+                                           "%s", client->dev.of_node->name);
+    if (IS_ERR(ks103_dev_data->device)) {
+        return PTR_ERR(ks103_dev_data->device);
     }
 
-    ks103cdev.private_data = client;
+    ks103_dev_data->client = client;
+    client->dev.driver_data = (void *)ks103_dev_data;
+
+    // printk("addr client=%x data=%x\n",client,ks103_dev_data);
+
+    count += 1;
 
     return 0;
 }
@@ -271,13 +316,20 @@ static int ks103_probe(struct i2c_client *client, const struct i2c_device_id *id
 */
 static int ks103_remove(struct i2c_client *client)
 {
+    struct ks103_dev *ks103_dev_data = client->dev.driver_data;
+
+    // printk("addr client=%x data=%x\n",client,client->dev.driver_data);
     /* 删除设备 */
-    cdev_del(&ks103cdev.cdev);
-    unregister_chrdev_region(ks103cdev.devid, KS103_CNT);
+    cdev_del(&ks103_dev_data->cdev);
+    device_destroy(mydev_class, ks103_dev_data->devid);
+    unregister_chrdev_region(ks103_dev_data->devid, 1);
+    count--;
 
     /* 注销掉类和设备 */
-    device_destroy(ks103cdev.class, ks103cdev.devid);
-    class_destroy(ks103cdev.class);
+    if (count == 0)
+    {
+        class_destroy(mydev_class);
+    }
     return 0;
 }
 
@@ -290,6 +342,7 @@ static const struct i2c_device_id ks103_id[] = {
 /* 设备树匹配列表 */
 static const struct of_device_id ks103_of_match[] = {
     { .compatible = "ks103" },
+    { .compatible = "ks103_88" },
     { /* Sentinel */ }
 };
 
@@ -299,7 +352,7 @@ static struct i2c_driver ks103_driver = {
     .remove = ks103_remove,
     .driver = {
         .owner = THIS_MODULE,
-        .name = "ks103",
+        .name = "ks103_1",
         .of_match_table = ks103_of_match,
     },
     .id_table = ks103_id,
